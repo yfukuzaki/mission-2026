@@ -287,27 +287,54 @@
         } catch (e) { alert("通知エラー。そのまま本部へお越しください！"); btn.disabled = false; btn.innerText = "今から本部に行く（再試行）"; }
     }
 
-    // --- 6. 送信ロジック（修正済み） ---
+    // --- 6. 送信ロジック（リサイズ機能付き） ---
     async function sendData() {
         const btn = document.getElementById("sendBtn");
         const mNum = document.getElementById("missionNum").value;
         const fileInput = document.getElementById("photoInput");
 
-        // ★修正ポイント：判定ロジックの整理
-        if (!window.pendingPhoto && fileInput.files.length === 0) {
-            return alert("画像を選んでください。");
-        }
-        if (groupId === "未設定") return alert("グループIDが設定されていません。");
+        if (groupId === "未設定" || !groupId) return alert("URLの最後に ?g=1 のようにグループIDを指定してください。");
+        if (!window.pendingPhoto && fileInput.files.length === 0) return alert("画像を選んでください。");
 
-        // まだBase64化されていない（新規投稿）場合
+        // 新規投稿の場合：リサイズ処理
         if (!window.pendingPhoto) {
             btn.disabled = true;
-            btn.innerText = "画像を処理中...";
+            btn.innerText = "画像を最適化中...";
+            
+            const file = fileInput.files[0];
             const reader = new FileReader();
-            reader.readAsDataURL(fileInput.files[0]);
-            reader.onload = async () => {
-                window.pendingPhoto = reader.result.split(',')[1];
-                executeUpload();
+            reader.readAsDataURL(file);
+            reader.onload = (e) => {
+                const img = new Image();
+                img.onload = () => {
+                    // キャンバスでリサイズ
+                    const canvas = document.createElement('canvas');
+                    const MAX_WIDTH = 800; // 長辺を800pxに制限（通信量削減）
+                    let width = img.width;
+                    let height = img.height;
+
+                    if (width > height) {
+                        if (width > MAX_WIDTH) {
+                            height *= MAX_WIDTH / width;
+                            width = MAX_WIDTH;
+                        }
+                    } else {
+                        if (height > MAX_WIDTH) {
+                            width *= MAX_WIDTH / height;
+                            height = MAX_WIDTH;
+                        }
+                    }
+
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+                    
+                    // Base64化（JPEG形式、画質85%で軽量化）
+                    window.pendingPhoto = canvas.toDataURL('image/jpeg', 0.85).split(',')[1];
+                    executeUpload();
+                };
+                img.src = e.target.result;
             };
         } else {
             // 再送の場合
@@ -318,17 +345,30 @@
             btn.disabled = true;
             btn.innerText = "送信中... (電波を確認！)";
             const currentElapsed = document.getElementById("elapsed").innerText;
-            const missionText = getMissionText(mNum).text;
+            
+            // ミッションテキストの取得
+            let missionText = "不明なミッション";
+            try {
+                missionText = getMissionText(mNum).text;
+            } catch(e) { console.error(e); }
 
             try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 30000); // 30秒でタイムアウト
+
                 const res = await fetch(POST_URL, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ 
-                        groupId, missionNum: mNum, imageData: window.pendingPhoto, 
-                        elapsedTime: currentElapsed, missionDetail: missionText 
-                    })
+                        groupId: groupId, 
+                        missionNum: mNum, 
+                        imageData: window.pendingPhoto, 
+                        elapsedTime: currentElapsed, 
+                        missionDetail: missionText 
+                    }),
+                    signal: controller.signal
                 });
+                clearTimeout(timeoutId);
 
                 if (res.ok || res.status === 202) {
                     const history = JSON.parse(localStorage.getItem(`logs_g${groupId}`) || "[]");
@@ -340,20 +380,24 @@
                     });
                     localStorage.setItem(`logs_g${groupId}`, JSON.stringify(history));
                     
+                    // 成功時のクリーンアップ
                     window.pendingPhoto = null; 
                     fileInput.value = ""; 
+                    btn.disabled = false;
+                    btn.innerText = "ミッション完了報告を送信";
                     btn.style.background = "#00ffcc";
 
                     if (history.length >= 4) { playFanfareSound(); } else { playStampSound(); }
                     refreshUI();
                 } else {
-                    throw new Error("通信エラー");
+                    throw new Error("Server Error");
                 }
             } catch (e) {
-                alert("送信に失敗しました。電波の良い場所に移動して、もう一度『再送する』ボタンを押してください。");
+                console.error(e);
+                alert("送信に失敗しました。建物を出るなど、電波の良い場所に移動して『再送する』を押してください。");
                 btn.innerText = "❌ 送信失敗：再送する";
                 btn.style.background = "#ff3366";
-                btn.disabled = false; // 再送できるようにボタンを復帰
+                btn.disabled = false; 
             }
         }
     }
