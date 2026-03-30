@@ -24,30 +24,17 @@
             aspect-ratio: 1/1; background: #2d2d2d; border: 2px dashed #444; border-radius: 15px; 
             display: flex; flex-direction: column; justify-content: center; align-items: center; 
             position: relative; overflow: hidden; transition: 0.3s; cursor: pointer;
-            background-size: cover; background-position: center; /* 写真表示用 */
         }
         .panel:active { transform: scale(0.95); }
+        .panel.cleared { background: #fff; border: 2px solid #00ffcc; color: #333; cursor: default; }
+        .panel-label { font-size: 0.9rem; font-weight: bold; }
+        .tap-hint { font-size: 0.6rem; color: #666; margin-top: 5px; }
         
-        /* 完了後のスタイル（写真背景） */
-        .panel.cleared { border: 2px solid #00ffcc; cursor: default; }
-        .panel.cleared::after { /* 写真の上に黒マスクをかける */
-            content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
-            background: rgba(0,0,0,0.5); z-index: 1; border-radius: 13px;
-        }
-        
-        .panel-label { font-size: 0.9rem; font-weight: bold; position: relative; z-index: 2; }
-        .tap-hint { font-size: 0.6rem; color: #666; margin-top: 5px; position: relative; z-index: 2; }
-        
-        /* 完了後の文字色調整 */
-        .panel.cleared .panel-label { color: #fff; }
-        .panel.cleared .tap-hint { display: none; } /* TAPヒントは消す */
-
         /* スタンプ演出 */
         .stamp { 
             display: none; position: absolute; font-weight: bold; font-size: 1.2rem;
             color: #ff3366; border: 4px solid #ff3366; padding: 6px; border-radius: 8px;
-            transform: rotate(-20deg); z-index: 3; /* マスクより上に表示 */
-            background: rgba(255,255,255,0.8); /* スタンプの文字を見やすく */
+            transform: rotate(-20deg); z-index: 2;
         }
         .panel.cleared .stamp { display: block; animation: stampAnim 0.4s cubic-bezier(.17,.67,.83,.67); }
         .clear-time { font-size: 0.65rem; color: #ff3366; margin-top: 4px; font-weight: bold; }
@@ -140,38 +127,58 @@
     let timerPaused = false;
     window.pendingPhoto = null;
 
-    // --- 2. サウンド演出 ---
+    // --- 2. サウンド演出（音量アップ＆安定版） ---
     function playStampSound() {
         try {
-            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            const audioCtx = new AudioContext();
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+
             const now = audioCtx.currentTime;
-            const osc1 = audioCtx.createOscillator(); const gain1 = audioCtx.createGain();
-            osc1.type = 'triangle'; osc1.frequency.setValueAtTime(150, now);
+            
+            // 1. ポンッという打撃音（音量を 0.3 -> 0.8 にアップ）
+            const osc1 = audioCtx.createOscillator(); 
+            const gain1 = audioCtx.createGain();
+            osc1.type = 'triangle'; 
+            osc1.frequency.setValueAtTime(150, now);
             osc1.frequency.exponentialRampToValueAtTime(40, now + 0.1);
-            gain1.gain.setValueAtTime(0.5, now); gain1.gain.linearRampToValueAtTime(0, now + 0.1);
+            gain1.gain.setValueAtTime(0.8, now); // ★音量アップ
+            gain1.gain.linearRampToValueAtTime(0, now + 0.15);
             osc1.connect(gain1); gain1.connect(audioCtx.destination);
-            osc1.start(now); osc1.stop(now + 0.1);
+            osc1.start(now); osc1.stop(now + 0.2);
+
+            // 2. キラキラした余韻（音量を 0.1 -> 0.4 にアップ）
             [523.25, 659.25, 783.99, 987.77].forEach((freq, i) => {
-                const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
+                const osc = audioCtx.createOscillator(); 
+                const gain = audioCtx.createGain();
                 const startTime = now + 0.05 + (i * 0.05);
-                osc.type = 'sine'; osc.frequency.setValueAtTime(freq, startTime);
-                gain.gain.setValueAtTime(0, startTime); gain.gain.linearRampToValueAtTime(0.1, startTime + 0.05);
-                gain.gain.exponentialRampToValueAtTime(0.01, startTime + 0.5);
+                osc.type = 'sine'; 
+                osc.frequency.setValueAtTime(freq, startTime);
+                gain.gain.setValueAtTime(0, startTime); 
+                gain.gain.linearRampToValueAtTime(0.4, startTime + 0.05); // ★音量アップ
+                gain.gain.exponentialRampToValueAtTime(0.01, startTime + 0.6);
                 osc.connect(gain); gain.connect(audioCtx.destination);
-                osc.start(startTime); osc.stop(startTime + 0.6);
+                osc.start(startTime); osc.stop(startTime + 0.7);
             });
         } catch(e) {}
     }
 
     function playFanfareSound() {
         try {
-            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            const audioCtx = new AudioContext();
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            
             const now = audioCtx.currentTime;
+            // 華やかなファンファーレ（各音の音量を 0.1 -> 0.5 にアップ）
             const notes = [{f: 523.25, t: 0.1}, {f: 523.25, t: 0.2}, {f: 523.25, t: 0.3}, {f: 659.25, t: 0.5}, {f: 783.99, t: 0.7}, {f: 1046.50, t: 1.0}];
             notes.forEach(n => {
-                const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
-                osc.type = 'square'; osc.frequency.setValueAtTime(n.f, now + n.t);
-                gain.gain.setValueAtTime(0, now + n.t); gain.gain.linearRampToValueAtTime(0.1, now + n.t + 0.05);
+                const osc = audioCtx.createOscillator(); 
+                const gain = audioCtx.createGain();
+                osc.type = 'square'; 
+                osc.frequency.setValueAtTime(n.f, now + n.t);
+                gain.gain.setValueAtTime(0, now + n.t); 
+                gain.gain.linearRampToValueAtTime(0.5, now + n.t + 0.05); // ★音量アップ
                 gain.gain.exponentialRampToValueAtTime(0.01, now + n.t + 0.4);
                 osc.connect(gain); gain.connect(audioCtx.destination);
                 osc.start(now + n.t); osc.stop(now + n.t + 0.5);
@@ -252,20 +259,10 @@
     function refreshUI() {
         const history = JSON.parse(localStorage.getItem(`logs_g${groupId}`) || "[]");
         const clearedMissions = history.map(log => log.num);
-        
         history.forEach(log => {
-            const p = document.getElementById(`p${log.num}`); 
-            const t = document.getElementById(`t${log.num}`);
-            if(p) {
-                p.classList.add('cleared');
-                // ★記憶されているBase64写真を背景に設定
-                if (log.photo) {
-                    p.style.backgroundImage = `url(data:image/jpeg;base64,${log.photo})`;
-                }
-            }
-            if(t) t.innerText = log.time;
+            const p = document.getElementById(`p${log.num}`); const t = document.getElementById(`t${log.num}`);
+            if(p) p.classList.add('cleared'); if(t) t.innerText = log.time;
         });
-        
         const select = document.getElementById("missionNum");
         for (let i = select.options.length - 1; i >= 0; i--) { if (clearedMissions.includes(select.options[i].value)) select.remove(i); }
 
@@ -289,7 +286,7 @@
         }
     }
 
-    // --- 6. 送信ロジック（フォト・スタンプ対応版） ---
+    // --- 6. 送信ロジック（安定性・再試行強化版） ---
     async function sendData() {
         const btn = document.getElementById("sendBtn");
         const mNum = document.getElementById("missionNum").value;
@@ -299,13 +296,13 @@
             return alert("画像を選んでください。");
         }
 
+        // 初回のみファイルを読み込む
         if (!window.pendingPhoto) {
             btn.disabled = true;
             btn.innerText = "画像を処理中...";
             const reader = new FileReader();
             reader.readAsDataURL(fileInput.files[0]);
             reader.onload = async () => {
-                // ここで縮小処理を入れることも可能だが、まずはそのままBase64化
                 window.pendingPhoto = reader.result.split(',')[1];
                 executeUpload();
             };
@@ -320,7 +317,6 @@
             const missionText = getMissionText(mNum).text;
 
             try {
-                // 1. まずは Power Automate へ送信
                 const res = await fetch(POST_URL, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
@@ -330,14 +326,13 @@
                     })
                 });
 
+                // サーバーが200または202を受け取ったら成功とみなす
                 if (res.ok || res.status === 202) {
-                    // 2. 送信成功したら、履歴に写真（Base64）も含めて保存
                     const history = JSON.parse(localStorage.getItem(`logs_g${groupId}`) || "[]");
                     history.push({ 
                         num: mNum, 
                         time: new Date().toLocaleTimeString('ja-JP', {hour:'2-digit', minute:'2-digit'}), 
-                        elapsedAt: currentElapsed,
-                        photo: window.pendingPhoto // ★写真をスマホに記憶させる
+                        elapsedAt: currentElapsed 
                     });
                     localStorage.setItem(`logs_g${groupId}`, JSON.stringify(history));
                     
@@ -346,7 +341,7 @@
                     btn.style.background = "#00ffcc";
 
                     if (history.length >= 4) { playFanfareSound(); } else { playStampSound(); }
-                    refreshUI(); // これで背景が変わるアニメーションが走る
+                    refreshUI();
                 } else {
                     throw new Error("通信エラー");
                 }
@@ -355,6 +350,7 @@
                 btn.innerText = "❌ 送信失敗：再送する";
                 btn.style.background = "#ff3366";
             } finally {
+                // 通信終了後、4回完了していない場合はボタンを強制復帰
                 const historyCheck = JSON.parse(localStorage.getItem(`logs_g${groupId}`) || "[]");
                 if (historyCheck.length < 4) {
                     setTimeout(() => {
