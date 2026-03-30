@@ -24,17 +24,30 @@
             aspect-ratio: 1/1; background: #2d2d2d; border: 2px dashed #444; border-radius: 15px; 
             display: flex; flex-direction: column; justify-content: center; align-items: center; 
             position: relative; overflow: hidden; transition: 0.3s; cursor: pointer;
+            background-size: cover; background-position: center; /* 写真表示用 */
         }
         .panel:active { transform: scale(0.95); }
-        .panel.cleared { background: #fff; border: 2px solid #00ffcc; color: #333; cursor: default; }
-        .panel-label { font-size: 0.9rem; font-weight: bold; }
-        .tap-hint { font-size: 0.6rem; color: #666; margin-top: 5px; }
         
-        /* スタンプの演出 */
+        /* 完了後のスタイル（写真背景） */
+        .panel.cleared { border: 2px solid #00ffcc; cursor: default; }
+        .panel.cleared::after { /* 写真の上に黒マスクをかける */
+            content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
+            background: rgba(0,0,0,0.5); z-index: 1; border-radius: 13px;
+        }
+        
+        .panel-label { font-size: 0.9rem; font-weight: bold; position: relative; z-index: 2; }
+        .tap-hint { font-size: 0.6rem; color: #666; margin-top: 5px; position: relative; z-index: 2; }
+        
+        /* 完了後の文字色調整 */
+        .panel.cleared .panel-label { color: #fff; }
+        .panel.cleared .tap-hint { display: none; } /* TAPヒントは消す */
+
+        /* スタンプ演出 */
         .stamp { 
             display: none; position: absolute; font-weight: bold; font-size: 1.2rem;
             color: #ff3366; border: 4px solid #ff3366; padding: 6px; border-radius: 8px;
-            transform: rotate(-20deg); z-index: 2;
+            transform: rotate(-20deg); z-index: 3; /* マスクより上に表示 */
+            background: rgba(255,255,255,0.8); /* スタンプの文字を見やすく */
         }
         .panel.cleared .stamp { display: block; animation: stampAnim 0.4s cubic-bezier(.17,.67,.83,.67); }
         .clear-time { font-size: 0.65rem; color: #ff3366; margin-top: 4px; font-weight: bold; }
@@ -44,7 +57,7 @@
             100% { transform: scale(1) rotate(-20deg); opacity: 1; }
         }
 
-        /* ポップアップ */
+        /* モーダル */
         #modalOverlay { 
             display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
             background: rgba(0,0,0,0.9); z-index: 100; justify-content: center; align-items: center; padding: 20px; box-sizing: border-box;
@@ -60,7 +73,7 @@
         /* フォーム */
         select, input, button { width: 100%; padding: 15px; margin: 10px 0; border-radius: 8px; border: none; font-size: 1rem; box-sizing: border-box; }
         #sendBtn { background: #00ffcc; color: #000; font-weight: bold; cursor: pointer; transition: 0.3s; }
-        #sendBtn:disabled { background: #444; color: #777; }
+        #sendBtn:disabled { background: #444 !important; color: #777 !important; cursor: not-allowed; }
 
         /* ゴール演出用 */
         .congrats-card { background: linear-gradient(135deg, #1e1e1e 0%, #2a2a2a 100%); border: 2px solid #ffcc00; animation: shine 2s infinite; }
@@ -125,41 +138,45 @@
 
     let currentOpenMissionIndex = 0;
     let timerPaused = false;
-    window.pendingPhoto = null; // メモリ保持用
+    window.pendingPhoto = null;
 
     // --- 2. サウンド演出 ---
     function playStampSound() {
-        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        const now = audioCtx.currentTime;
-        const osc1 = audioCtx.createOscillator(); const gain1 = audioCtx.createGain();
-        osc1.type = 'triangle'; osc1.frequency.setValueAtTime(150, now);
-        osc1.frequency.exponentialRampToValueAtTime(40, now + 0.1);
-        gain1.gain.setValueAtTime(0.5, now); gain1.gain.linearRampToValueAtTime(0, now + 0.1);
-        osc1.connect(gain1); gain1.connect(audioCtx.destination);
-        osc1.start(now); osc1.stop(now + 0.1);
-        [523.25, 659.25, 783.99, 987.77].forEach((freq, i) => {
-            const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
-            const startTime = now + 0.05 + (i * 0.05);
-            osc.type = 'sine'; osc.frequency.setValueAtTime(freq, startTime);
-            gain.gain.setValueAtTime(0, startTime); gain.gain.linearRampToValueAtTime(0.1, startTime + 0.05);
-            gain.gain.exponentialRampToValueAtTime(0.01, startTime + 0.5);
-            osc.connect(gain); gain.connect(audioCtx.destination);
-            osc.start(startTime); osc.stop(startTime + 0.6);
-        });
+        try {
+            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const now = audioCtx.currentTime;
+            const osc1 = audioCtx.createOscillator(); const gain1 = audioCtx.createGain();
+            osc1.type = 'triangle'; osc1.frequency.setValueAtTime(150, now);
+            osc1.frequency.exponentialRampToValueAtTime(40, now + 0.1);
+            gain1.gain.setValueAtTime(0.5, now); gain1.gain.linearRampToValueAtTime(0, now + 0.1);
+            osc1.connect(gain1); gain1.connect(audioCtx.destination);
+            osc1.start(now); osc1.stop(now + 0.1);
+            [523.25, 659.25, 783.99, 987.77].forEach((freq, i) => {
+                const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
+                const startTime = now + 0.05 + (i * 0.05);
+                osc.type = 'sine'; osc.frequency.setValueAtTime(freq, startTime);
+                gain.gain.setValueAtTime(0, startTime); gain.gain.linearRampToValueAtTime(0.1, startTime + 0.05);
+                gain.gain.exponentialRampToValueAtTime(0.01, startTime + 0.5);
+                osc.connect(gain); gain.connect(audioCtx.destination);
+                osc.start(startTime); osc.stop(startTime + 0.6);
+            });
+        } catch(e) {}
     }
 
     function playFanfareSound() {
-        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        const now = audioCtx.currentTime;
-        const notes = [{f: 523.25, t: 0.1}, {f: 523.25, t: 0.2}, {f: 523.25, t: 0.3}, {f: 659.25, t: 0.5}, {f: 783.99, t: 0.7}, {f: 1046.50, t: 1.0}];
-        notes.forEach(n => {
-            const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
-            osc.type = 'square'; osc.frequency.setValueAtTime(n.f, now + n.t);
-            gain.gain.setValueAtTime(0, now + n.t); gain.gain.linearRampToValueAtTime(0.1, now + n.t + 0.05);
-            gain.gain.exponentialRampToValueAtTime(0.01, now + n.t + 0.4);
-            osc.connect(gain); gain.connect(audioCtx.destination);
-            osc.start(now + n.t); osc.stop(now + n.t + 0.5);
-        });
+        try {
+            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const now = audioCtx.currentTime;
+            const notes = [{f: 523.25, t: 0.1}, {f: 523.25, t: 0.2}, {f: 523.25, t: 0.3}, {f: 659.25, t: 0.5}, {f: 783.99, t: 0.7}, {f: 1046.50, t: 1.0}];
+            notes.forEach(n => {
+                const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
+                osc.type = 'square'; osc.frequency.setValueAtTime(n.f, now + n.t);
+                gain.gain.setValueAtTime(0, now + n.t); gain.gain.linearRampToValueAtTime(0.1, now + n.t + 0.05);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + n.t + 0.4);
+                osc.connect(gain); gain.connect(audioCtx.destination);
+                osc.start(now + n.t); osc.stop(now + n.t + 0.5);
+            });
+        } catch(e) {}
     }
 
     // --- 3. ロジック：パス・ミッション ---
@@ -219,7 +236,7 @@
     }
     setInterval(updateTimers, 1000);
 
-    // --- 5. UI更新・通知 ---
+    // --- 5. UI更新・本部通知 ---
     async function sendGoalNotification() {
         const btn = document.getElementById("goalBtn");
         btn.disabled = true; btn.innerText = "通知送信中...";
@@ -235,10 +252,20 @@
     function refreshUI() {
         const history = JSON.parse(localStorage.getItem(`logs_g${groupId}`) || "[]");
         const clearedMissions = history.map(log => log.num);
+        
         history.forEach(log => {
-            const p = document.getElementById(`p${log.num}`); const t = document.getElementById(`t${log.num}`);
-            if(p) p.classList.add('cleared'); if(t) t.innerText = log.time;
+            const p = document.getElementById(`p${log.num}`); 
+            const t = document.getElementById(`t${log.num}`);
+            if(p) {
+                p.classList.add('cleared');
+                // ★記憶されているBase64写真を背景に設定
+                if (log.photo) {
+                    p.style.backgroundImage = `url(data:image/jpeg;base64,${log.photo})`;
+                }
+            }
+            if(t) t.innerText = log.time;
         });
+        
         const select = document.getElementById("missionNum");
         for (let i = select.options.length - 1; i >= 0; i--) { if (clearedMissions.includes(select.options[i].value)) select.remove(i); }
 
@@ -262,29 +289,28 @@
         }
     }
 
-    // --- 6. 送信ロジック（エラーハンドリング強化版） ---
+    // --- 6. 送信ロジック（フォト・スタンプ対応版） ---
     async function sendData() {
         const btn = document.getElementById("sendBtn");
         const mNum = document.getElementById("missionNum").value;
         const fileInput = document.getElementById("photoInput");
 
-        // 1. 写真が未選択かつメモリにもない場合
         if (!window.pendingPhoto && (!fileInput.files[0] || groupId === "未設定")) {
             return alert("画像を選んでください。");
         }
 
-        // 2. 写真の読み込み処理（初回のみ）
         if (!window.pendingPhoto) {
             btn.disabled = true;
             btn.innerText = "画像を処理中...";
             const reader = new FileReader();
             reader.readAsDataURL(fileInput.files[0]);
             reader.onload = async () => {
+                // ここで縮小処理を入れることも可能だが、まずはそのままBase64化
                 window.pendingPhoto = reader.result.split(',')[1];
                 executeUpload();
             };
         } else {
-            executeUpload(); // 再試行時
+            executeUpload();
         }
 
         async function executeUpload() {
@@ -294,6 +320,7 @@
             const missionText = getMissionText(mNum).text;
 
             try {
+                // 1. まずは Power Automate へ送信
                 const res = await fetch(POST_URL, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
@@ -303,25 +330,41 @@
                     })
                 });
 
-                if (res.ok) {
+                if (res.ok || res.status === 202) {
+                    // 2. 送信成功したら、履歴に写真（Base64）も含めて保存
                     const history = JSON.parse(localStorage.getItem(`logs_g${groupId}`) || "[]");
-                    history.push({ num: mNum, time: new Date().toLocaleTimeString('ja-JP', {hour:'2-digit', minute:'2-digit'}), elapsedAt: currentElapsed });
+                    history.push({ 
+                        num: mNum, 
+                        time: new Date().toLocaleTimeString('ja-JP', {hour:'2-digit', minute:'2-digit'}), 
+                        elapsedAt: currentElapsed,
+                        photo: window.pendingPhoto // ★写真をスマホに記憶させる
+                    });
                     localStorage.setItem(`logs_g${groupId}`, JSON.stringify(history));
                     
-                    window.pendingPhoto = null; // 成功したのでクリア
+                    window.pendingPhoto = null; 
                     fileInput.value = ""; 
-                    btn.style.background = "#00ffcc"; // 色を元に戻す
+                    btn.style.background = "#00ffcc";
 
                     if (history.length >= 4) { playFanfareSound(); } else { playStampSound(); }
-                    refreshUI();
+                    refreshUI(); // これで背景が変わるアニメーションが走る
                 } else {
-                    throw new Error("送信失敗");
+                    throw new Error("通信エラー");
                 }
             } catch (e) {
                 alert("送信に失敗しました。電波の良い場所に移動して、もう一度『再送する』ボタンを押してください。");
-                btn.disabled = false;
                 btn.innerText = "❌ 送信失敗：再送する";
                 btn.style.background = "#ff3366";
+            } finally {
+                const historyCheck = JSON.parse(localStorage.getItem(`logs_g${groupId}`) || "[]");
+                if (historyCheck.length < 4) {
+                    setTimeout(() => {
+                        btn.disabled = false;
+                        if (!window.pendingPhoto) {
+                            btn.innerText = "ミッション完了報告を送信";
+                            btn.style.background = "#00ffcc";
+                        }
+                    }, 800);
+                }
             }
         }
     }
