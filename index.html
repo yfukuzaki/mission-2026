@@ -309,7 +309,7 @@
                 img.onload = () => {
                     // キャンバスでリサイズ
                     const canvas = document.createElement('canvas');
-                    const MAX_WIDTH = 800; // 長辺を800pxに制限（通信量削減）
+                    const MAX_WIDTH = 1080; // 長辺を1080pxに制限（通信量削減）
                     let width = img.width;
                     let height = img.height;
 
@@ -330,8 +330,8 @@
                     const ctx = canvas.getContext('2d');
                     ctx.drawImage(img, 0, 0, width, height);
                     
-                    // Base64化（JPEG形式、画質85%で軽量化）
-                    window.pendingPhoto = canvas.toDataURL('image/jpeg', 0.85).split(',')[1];
+                    // Base64化（JPEG形式、画質90%で軽量化）
+                    window.pendingPhoto = canvas.toDataURL('image/jpeg', 0.9).split(',')[1];
                     executeUpload();
                 };
                 img.src = e.target.result;
