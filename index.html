@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>街歩きミッション・コントロール</title>
+    <style>
+        body { background: #121212; color: #00ffcc; font-family: 'Helvetica Neue', Arial, sans-serif; margin: 0; padding: 20px; text-align: center; }
+        .card { background: #1e1e1e; border-radius: 12px; padding: 20px; margin-bottom: 20px; border: 1px solid #333; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        h1 { font-size: 0.8rem; color: #888; text-transform: uppercase; letter-spacing: 2px; margin: 0 0 10px; }
+        .group-display { font-size: 2.2rem; color: #fff; font-weight: bold; }
+        #timer { font-size: 3rem; font-weight: bold; color: #ffcc00; margin: 10px 0; }
+        
+        /* 2x2パネルのスタイル */
+        .mission-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 10px; }
+        .panel { 
+            aspect-ratio: 1/1; background: #2d2d2d; border: 2px dashed #444; border-radius: 15px; 
+            display: flex; flex-direction: column; justify-content: center; align-items: center; 
+            position: relative; overflow: hidden; transition: 0.5s;
+        }
+        .panel.cleared { background: #fff; border: 2px solid #00ffcc; color: #333; transform: scale(1.05); }
+        .panel-label { font-size: 0.8rem; color: #666; }
+        
+        /* スタンプの演出 */
+        .stamp { 
+            display: none; position: absolute; font-weight: bold; font-size: 1.2rem;
+            color: #ff3366; border: 3px solid #ff3366; padding: 5px; border-radius: 5px;
+            transform: rotate(-20deg); animation: stampAnim 0.3s cubic-bezier(.17,.67,.83,.67);
+        }
+        .panel.cleared .stamp { display: block; }
+        .panel.cleared .panel-label { color: #888; }
+        .clear-time { font-size: 0.7rem; color: #ff3366; margin-top: 5px; font-weight: bold; }
+
+        @keyframes stampAnim { 0% { transform: scale(3) rotate(0deg); opacity: 0; } 100% { transform: scale(1) rotate(-20deg); opacity: 1; } }
+
+        /* 入力フォーム */
+        select, input, button { width: 100%; padding: 15px; margin: 10px 0; border-radius: 8px; border: none; font-size: 1rem; box-sizing: border-box; }
+        button { background: #00ffcc; color: #000; font-weight: bold; cursor: pointer; }
+        button:disabled { background: #444; color: #777; }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <div id="groupDisplay" class="group-display">GROUP --</div>
+    <div id="timer">--:--:--</div>
+</div>
+
+<div class="card">
+    <h1>Mission Progress</h1>
+    <div class="mission-grid">
+        <div class="panel" id="p1"><div class="panel-label">ミッション 1</div><div class="stamp">完了！<div class="clear-time" id="t1"></div></div></div>
+        <div class="panel" id="p2"><div class="panel-label">ミッション 2</div><div class="stamp">完了！<div class="clear-time" id="t2"></div></div></div>
+        <div class="panel" id="p3"><div class="panel-label">ミッション 3</div><div class="stamp">完了！<div class="clear-time" id="t3"></div></div></div>
+        <div class="panel" id="p4"><div class="panel-label">ミッション 4</div><div class="stamp">完了！<div class="clear-time" id="t4"></div></div></div>
+    </div>
+</div>
+
+<div class="card" id="inputCard">
+    <h1>Mission Submission</h1>
+    <label for="missionNum" style="display:block; text-align:left; font-size:0.8rem; color:#aaa;">報告するミッションを選択：</label>
+    <select id="missionNum">
+        <option value="1">ミッション 1 を報告</option>
+        <option value="2">ミッション 2 を報告</option>
+        <option value="3">ミッション 3 を報告</option>
+        <option value="4">ミッション 4 を報告</option>
+    </select>
+    <p style="font-size: 0.8rem; color: #ffcc00; margin: 5px 0;">📸 横向き(16:9)で、全員写って撮影！</p>
+    <input type="file" id="photoInput" accept="image/*">
+    <button id="sendBtn" onclick="sendData()">ミッション完了報告を送信</button>
+</div>
+
+<script>
+    // --- 設定：Power AutomateのURLをここに貼り付けてください ---
+    const POST_URL = "★ここにURLを貼り付け★"; 
+    
+    // イベント終了時刻：2026年4月3日 16:00:00
+    const GOAL_TIME = new Date(2026, 3, 3, 16, 0, 0); 
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const groupId = urlParams.get('g') || "未設定";
+    document.getElementById("groupDisplay").innerText = `GROUP ${groupId}`;
+
+    function updateTimer() {
+        const now = new Date();
+        const diff = GOAL_TIME - now;
+        if (diff <= 0) {
+            document.getElementById("timer").innerHTML = "TIME UP";
+            document.getElementById("inputCard").innerHTML = "<h2>⌛ 受付終了</h2><p>制限時間を過ぎました。会場へ戻ってください。</p>";
+            return;
+        }
+        const h = Math.floor(diff / 3600000).toString().padStart(2, '0');
+        const m = Math.floor((diff % 3600000) / 60000).toString().padStart(2, '0');
+        const s = Math.floor((diff % 60000) / 1000).toString().padStart(2, '0');
+        document.getElementById("timer").innerHTML = `${h}:${m}:${s}`;
+    }
+    setInterval(updateTimer, 1000);
+
+    function refreshUI() {
+        const history = JSON.parse(localStorage.getItem(`logs_g${groupId}`) || "[]");
+        const select = document.getElementById("missionNum");
+        const clearedMissions = history.map(log => log.num);
+
+        // パネルの状態を更新
+        history.forEach(log => {
+            const p = document.getElementById(`p${log.num}`);
+            const t = document.getElementById(`t${log.num}`);
+            if(p) p.classList.add('cleared');
+            if(t) t.innerText = log.time;
+        });
+
+        // 完了したミッションを選択肢から削除
+        for (let i = select.options.length - 1; i >= 0; i--) {
+            if (clearedMissions.includes(select.options[i].value)) select.remove(i);
+        }
+
+        if (select.options.length === 0 && clearedMissions.length >= 4) {
+            document.getElementById("inputCard").innerHTML = "<h2>🎉 MISSION COMPLETE!</h2><p>すべてのミッションを達成しました！</p>";
+        }
+    }
+
+    async function sendData() {
+        const btn = document.getElementById("sendBtn");
+        const mNum = document.getElementById("missionNum").value;
+        const fileInput = document.getElementById("photoInput");
+        const file = fileInput.files[0];
+
+        if (!file) return alert("写真を選択してください");
+        if (groupId === "未設定") return alert("グループ番号が不明です。QRを読み直してください。");
+
+        btn.disabled = true;
+        btn.innerText = "データを転送中...";
+
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = async () => {
+            const base64Photo = reader.result.split(',')[1];
+            try {
+                const res = await fetch(POST_URL, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ groupId, missionNum: mNum, imageData: base64Photo })
+                });
+                if (res.ok) {
+                    const log = { num: mNum, time: new Date().toLocaleTimeString('ja-JP', {hour:'2-digit', minute:'2-digit'}) };
+                    const history = JSON.parse(localStorage.getItem(`logs_g${groupId}`) || "[]");
+                    history.push(log);
+                    localStorage.setItem(`logs_g${groupId}`, JSON.stringify(history));
+                    
+                    alert(`ミッション ${mNum} 完了！`);
+                    fileInput.value = "";
+                    refreshUI();
+                } else {
+                    alert("送信エラーが発生しました。");
+                }
+            } catch (e) { alert("通信エラーです。電波の良い場所で送ってください。"); } finally { 
+                btn.disabled = false; 
+                btn.innerText = "ミッション完了報告を送信";
+            }
+        };
+    }
+    window.onload = refreshUI;
+</script>
+</body>
+</html>
