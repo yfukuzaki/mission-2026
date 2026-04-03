@@ -132,7 +132,7 @@
                 const osc = ctx.createOscillator(); const g = ctx.createGain();
                 osc.frequency.value = f; osc.type = "triangle";
                 g.gain.setValueAtTime(0, ctx.currentTime + i * 0.1);
-                g.gain.linearRampToValueAtTime(0.06, ctx.currentTime + i * 0.1 + 0.05);
+                g.gain.linearRampToValueAtTime(0.30, ctx.currentTime + i * 0.1 + 0.05);
                 g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.1 + 0.5);
                 osc.connect(g); g.connect(ctx.destination);
                 osc.start(ctx.currentTime + i * 0.1); osc.stop(ctx.currentTime + i * 0.1 + 0.5);
