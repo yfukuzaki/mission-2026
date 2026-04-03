@@ -10,7 +10,12 @@
         h1 { font-size: 0.75rem; color: #888; text-transform: uppercase; letter-spacing: 2px; margin: 0 0 10px; }
         .group-display { font-size: 2rem; color: #fff; font-weight: bold; margin-bottom: 10px; }
         
-        /* タイマーエリア */
+        .point-container { margin-bottom: 10px; display: flex; justify-content: center; align-items: baseline; gap: 8px; }
+        .point-status { font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; font-weight: bold; }
+        .status-locked { background: #ffcc00; color: #000; }
+        .status-confirmed { background: #00ffcc; color: #000; box-shadow: 0 0 10px #00ffcc; }
+        .total-pt { font-size: 1.8rem; font-weight: bold; color: #fff; }
+
         .timer-container { display: flex; justify-content: space-around; border-top: 1px solid #333; margin-top: 10px; padding-top: 15px; }
         .timer-box { flex: 1; }
         .timer-label { font-size: 0.7rem; color: #888; margin-bottom: 5px; }
@@ -18,72 +23,61 @@
         #elapsed { color: #00ffcc; }
         #remaining { color: #ffcc00; }
 
-        /* ミッショングリッド */
         .mission-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 10px; }
         .panel { 
             aspect-ratio: 1/1; background: #2d2d2d; border: 2px dashed #444; border-radius: 15px; 
             display: flex; flex-direction: column; justify-content: center; align-items: center; 
             position: relative; overflow: hidden; transition: 0.3s; cursor: pointer;
-            background-size: cover; background-position: center;
         }
-        .panel:active { transform: scale(0.95); }
+        .panel.cleared { background: #fff; border: 2px solid #00ffcc; color: #333; cursor: default; }
+        .panel-label { font-size: 0.9rem; font-weight: bold; }
+        .tap-hint { font-size: 0.6rem; color: #666; margin-top: 5px; }
         
-        .panel.cleared { border: 2px solid #00ffcc; cursor: default; }
-        .panel.cleared::after {
-            content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
-            background: rgba(0,0,0,0.5); z-index: 1; border-radius: 13px;
-        }
-        
-        .panel-label { font-size: 0.9rem; font-weight: bold; position: relative; z-index: 2; }
-        .tap-hint { font-size: 0.6rem; color: #666; margin-top: 5px; position: relative; z-index: 2; }
-        
-        .panel.cleared .panel-label { color: #fff; }
-        .panel.cleared .tap-hint { display: none; }
+        .sub-matrix { display: grid; grid-template-columns: repeat(6, 1fr); gap: 5px; margin-top: 10px; }
+        .sub-chip { font-size: 0.6rem; color: #888; background: #2a2a2a; padding: 5px 0; border-radius: 4px; border: 1px solid #333; }
+        .sub-chip.cleared { color: #00ffcc; border-color: #00ffcc; background: rgba(0,255,204,0.1); font-weight: bold; }
 
         .stamp { 
             display: none; position: absolute; font-weight: bold; font-size: 1.2rem;
             color: #ff3366; border: 4px solid #ff3366; padding: 6px; border-radius: 8px;
-            transform: rotate(-20deg); z-index: 3;
-            background: rgba(255,255,255,0.8);
+            transform: rotate(-20deg); z-index: 2;
         }
         .panel.cleared .stamp { display: block; animation: stampAnim 0.4s cubic-bezier(.17,.67,.83,.67); }
         .clear-time { font-size: 0.65rem; color: #ff3366; margin-top: 4px; font-weight: bold; }
 
-        @keyframes stampAnim { 
-            0% { transform: scale(4) rotate(0deg); opacity: 0; } 
-            100% { transform: scale(1) rotate(-20deg); opacity: 1; }
-        }
+        @keyframes stampAnim { 0% { transform: scale(4) opacity: 0; } 100% { transform: scale(1) opacity: 1; } }
 
-        /* モーダル */
         #modalOverlay { 
             display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
             background: rgba(0,0,0,0.9); z-index: 100; justify-content: center; align-items: center; padding: 20px; box-sizing: border-box;
         }
         .modal-content { background: #222; border: 2px solid #00ffcc; border-radius: 20px; padding: 30px; width: 100%; max-width: 400px; position: relative; }
-        #modalMissionText { color: #fff; font-size: 1.5rem; font-weight: bold; line-height: 1.4; margin-bottom: 25px; }
+        #modalMissionText { color: #fff; font-size: 1.3rem; font-weight: bold; line-height: 1.4; margin-bottom: 25px; }
         .pass-info { font-size: 0.9rem; color: #ffcc00; margin-bottom: 15px; font-weight: bold; }
         .modal-btns { display: flex; gap: 10px; }
         .btn-close, .btn-pass { flex: 1; padding: 12px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; }
         .btn-close { background: #444; color: #fff; }
         .btn-pass { background: #ffcc00; color: #000; }
 
-        /* フォーム */
         select, input, button { width: 100%; padding: 15px; margin: 10px 0; border-radius: 8px; border: none; font-size: 1rem; box-sizing: border-box; }
-        #sendBtn { background: #00ffcc; color: #000; font-weight: bold; cursor: pointer; transition: 0.3s; }
+        #sendBtn { background: #00ffcc; color: #000; font-weight: bold; cursor: pointer; }
         #sendBtn:disabled { background: #444 !important; color: #777 !important; cursor: not-allowed; }
 
-        /* ゴール演出 */
-        .congrats-card { background: linear-gradient(135deg, #1e1e1e 0%, #2a2a2a 100%); border: 2px solid #ffcc00; animation: shine 2s infinite; }
-        @keyframes shine { 0% { box-shadow: 0 0 10px #ffcc00; } 50% { box-shadow: 0 0 25px #ffcc00; } 100% { box-shadow: 0 0 10px #ffcc00; } }
+        .congrats-card { background: linear-gradient(135deg, #1e1e1e 0%, #2a2a2a 100%); border: 2px solid #ffcc00; }
         .congrats-text { font-size: 1.6rem; color: #ffcc00; font-weight: bold; margin: 10px 0; }
         .result-box { background: rgba(255,255,255,0.1); padding: 15px; border-radius: 10px; margin: 15px 0; border: 1px solid #ffcc00; }
         .navi-text { font-size: 1.1rem; color: #fff; background: #c0392b; padding: 12px; border-radius: 8px; margin-top: 15px; font-weight: bold; }
-        #goalBtn { background: #e67e22; color: white; font-size: 1.2rem; border: none; cursor: pointer; box-shadow: 0 4px #d35400; transition: 0.2s; }
+        #goalBtn { background: #e67e22; color: white; font-size: 1.2rem; border: none; cursor: pointer; box-shadow: 0 4px #d35400; }
     </style>
 </head>
 <body>
 
 <div class="card">
+    <div class="point-container">
+        <span id="ptStatus" class="point-status status-locked">獲得見込み</span>
+        <span id="totalPoints" class="total-pt">0</span>
+        <span style="font-size: 0.8rem; color: #888; font-weight: bold;">PT</span>
+    </div>
     <div id="groupDisplay" class="group-display">GROUP --</div>
     <div class="timer-container">
         <div class="timer-box">
@@ -98,13 +92,18 @@
 </div>
 
 <div class="card" id="missionCard">
-    <h1>Mission Progress (タップで詳細)</h1>
+    <h1>Core Mission (タップで詳細)</h1>
     <div class="mission-grid">
         <div class="panel" id="p1" onclick="openMission(1)"><div class="panel-label">ミッション 1</div><div class="tap-hint">TAP TO OPEN</div><div class="stamp">完了！<div class="clear-time" id="t1"></div></div></div>
         <div class="panel" id="p2" onclick="openMission(2)"><div class="panel-label">ミッション 2</div><div class="tap-hint">TAP TO OPEN</div><div class="stamp">完了！<div class="clear-time" id="t2"></div></div></div>
         <div class="panel" id="p3" onclick="openMission(3)"><div class="panel-label">ミッション 3</div><div class="tap-hint">TAP TO OPEN</div><div class="stamp">完了！<div class="clear-time" id="t3"></div></div></div>
         <div class="panel" id="p4" onclick="openMission(4)"><div class="panel-label">ミッション 4</div><div class="tap-hint">TAP TO OPEN</div><div class="stamp">完了！<div class="clear-time" id="t4"></div></div></div>
     </div>
+</div>
+
+<div class="card">
+    <h1>Sub Mission Log</h1>
+    <div class="sub-matrix" id="subMatrix"></div>
 </div>
 
 <div id="modalOverlay"><div class="modal-content">
@@ -116,97 +115,80 @@
 
 <div class="card" id="inputCard">
     <h1>Mission Submission</h1>
-    <select id="missionNum">
-        <option value="1">ミッション 1 を報告</option><option value="2">ミッション 2 を報告</option>
-        <option value="3">ミッション 3 を報告</option><option value="4">ミッション 4 を報告</option>
+    <select id="missionTarget">
+        <optgroup label="コアミッション" id="optCore"></optgroup>
+        <optgroup label="サブミッション" id="optSub"></optgroup>
     </select>
     <input type="file" id="photoInput" accept="image/*">
     <button id="sendBtn" onclick="sendData()">ミッション完了報告を送信</button>
 </div>
 
 <script>
-    // --- 1. 設定項目 ---
-    const MISSION_POOL = ["歴史を感じる門の前で自撮りせよ", "一番カラフルなものを全員で囲め", "銅像と同じポーズで撮れ", "青い看板の店を探せ", "全員の影が面白く映るように撮れ", "階段の途中で躍動感を撮れ", "全員が地面に足がついていない瞬間を撮れ", "自然な街角スナップを撮れ", "街路樹を背景に全員で撮れ", "マスコットキャラクターを探せ", "一番高い建物を見上げろ", "水辺で涼しげな集合写真を撮れ"];
+    // --- データ定義 ---
+    const CORE_T_POOL = [
+        "[T]地面の影だけで「星型」や「円」を作ってパシャ！",
+        "[T]おいしいものを食べて幸せな顔の新入生をパシャ！",
+        "[T]クローバー停留所でバスを待ちわびる様子をパシャ！",
+        "[T]全員笑顔で画角内に鳩が3匹いる状態でパシャ！",
+        "[T]ばかでかい万華鏡の下で見上げている写真をパシャ！",
+        "[T]びわ湖を背景に全員でジャンプした瞬間をパシャ！",
+        "[T]黒壁の熊と一緒にガラスを作るポーズでパシャ"
+    ];
+    const CORE_OTHER_POOL = [
+        "[他]人文字で「NBio」の文字を再現してパシャ！",
+        "[他]秘密基地っぽい場所で「潜入捜査風」ポーズでパシャ！",
+        "[他]異なる学科の2グループが合流して笑顔でパシャ！",
+        "[他]左から右へだんだん姿勢を正す「進化の図」をパシャ！",
+        "[他]黒壁ガラス館を背に「青春だろ？」ポーズでパシャ！",
+        "[他]お花ぎつねと同じポーズでパシャ！",
+        "[他]フィギュアになったつもりで静止してパシャ！",
+        "[他]歌舞伎絵と同じポーズでパシャ！"
+    ];
+    const SUB_POOL = [
+        {id:"S01", pt:10, t:"「初」の漢字が書かれた飛び出し坊や"}, {id:"S02", pt:10, t:"一番男前のナマズ"}, {id:"S03", pt:10, t:"とにかく黒色のもの"}, {id:"S04", pt:10, t:"酒樽が３つ並んだ場所"}, {id:"S05", pt:10, t:"たぬきの置物"}, {id:"S06", pt:10, t:"近江牛コロッケを神々しく掲げる"}, {id:"S07", pt:10, t:"食パンの像"}, {id:"S08", pt:10, t:"一番食べたいものを指差し"},
+        {id:"S09", pt:20, t:"パンのぬいぐるみ"}, {id:"S10", pt:20, t:"黒いソフトクリーム(モノクロ)"}, {id:"S11", pt:20, t:"四葉のクローバー"}, {id:"S12", pt:20, t:"石化したアンパンマン"}, {id:"S13", pt:20, t:"石田三成の飛び出し坊や"}, {id:"S14", pt:20, t:"武将ver.飛び出し坊や"}, {id:"S15", pt:20, t:"微生物の恩恵"}, {id:"S16", pt:20, t:"大げさな「うまい！」顔"}, {id:"S17", pt:20, t:"ベンチでリラックス"}, {id:"S18", pt:20, t:"一番きれいな青"}, {id:"S19", pt:20, t:"壁のカレーを受け止める"},
+        {id:"S20", pt:30, t:"｢乙女桜｣の異名を持つ桜"}, {id:"S21", pt:30, t:"奇妙な瓢箪"}, {id:"S22", pt:30, t:"手作り感満載のクワガタ"}, {id:"S23", pt:30, t:"他グループと『乾杯！』"}, {id:"S24", pt:30, t:"木彫りのカマキリ"}, {id:"S25", pt:30, t:"食べ物に対して深々と礼"}, {id:"S26", pt:30, t:"遠近法トリック写真"}, {id:"S27", pt:30, t:"「ふかふか」な苔"}, {id:"S28", pt:30, t:"質感を表現する顔"}, {id:"S29", pt:30, t:"パレイドリア（顔に見える場所）"}, {id:"S30", pt:30, t:"一番『エモい』路地"}
+    ];
+
     const POST_URL = "https://defaultce7b79c559554825ab1fb5c84e9e63.d7.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/a0c68a0b0f724618898d1e98ea02a174/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=Ntxy587vPD_sKfECziby9_yqeew3a_OuWxq3m1FFRdc"; 
     const GOAL_TIME = new Date(2026, 3, 3, 16, 0, 0); 
+
     const urlParams = new URLSearchParams(window.location.search);
     const groupId = urlParams.get('g') || "未設定";
     document.getElementById("groupDisplay").innerText = `GROUP ${groupId}`;
 
     let currentOpenMissionIndex = 0;
     let timerPaused = false;
-    window.pendingPhoto = null; // 再送用のBase64データ保持用
 
-    // --- 2. サウンド演出（音量アップ版） ---
-    function playStampSound() {
-        try {
-            const AudioContext = window.AudioContext || window.webkitAudioContext;
-            const audioCtx = new AudioContext();
-            if (audioCtx.state === 'suspended') audioCtx.resume();
-            const now = audioCtx.currentTime;
-            const osc1 = audioCtx.createOscillator(); const gain1 = audioCtx.createGain();
-            osc1.type = 'triangle'; osc1.frequency.setValueAtTime(150, now);
-            osc1.frequency.exponentialRampToValueAtTime(40, now + 0.1);
-            gain1.gain.setValueAtTime(0.8, now); // ★音量UP
-            gain1.gain.linearRampToValueAtTime(0, now + 0.15);
-            osc1.connect(gain1); gain1.connect(audioCtx.destination);
-            osc1.start(now); osc1.stop(now + 0.2);
-            [523.25, 659.25, 783.99, 987.77].forEach((freq, i) => {
-                const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
-                const startTime = now + 0.05 + (i * 0.05);
-                osc.type = 'sine'; osc.frequency.setValueAtTime(freq, startTime);
-                gain.gain.setValueAtTime(0, startTime); gain.gain.linearRampToValueAtTime(0.4, startTime + 0.05); // ★音量UP
-                gain.gain.exponentialRampToValueAtTime(0.01, startTime + 0.6);
-                osc.connect(gain); gain.connect(audioCtx.destination);
-                osc.start(startTime); osc.stop(startTime + 0.7);
-            });
-        } catch(e) {}
-    }
-
-    function playFanfareSound() {
-        try {
-            const AudioContext = window.AudioContext || window.webkitAudioContext;
-            const audioCtx = new AudioContext();
-            if (audioCtx.state === 'suspended') audioCtx.resume();
-            const now = audioCtx.currentTime;
-            const notes = [{f: 523.25, t: 0.1}, {f: 523.25, t: 0.2}, {f: 523.25, t: 0.3}, {f: 659.25, t: 0.5}, {f: 783.99, t: 0.7}, {f: 1046.50, t: 1.0}];
-            notes.forEach(n => {
-                const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain();
-                osc.type = 'square'; osc.frequency.setValueAtTime(n.f, now + n.t);
-                gain.gain.setValueAtTime(0, now + n.t); gain.gain.linearRampToValueAtTime(0.5, now + n.t + 0.05); // ★音量UP
-                gain.gain.exponentialRampToValueAtTime(0.01, now + n.t + 0.4);
-                osc.connect(gain); gain.connect(audioCtx.destination);
-                osc.start(now + n.t); osc.stop(now + n.t + 0.5);
-            });
-        } catch(e) {}
-    }
-
-    // --- 3. ロジック：パス・ミッション ---
+    // --- ロジック：ミッション選出（T：1,2番 / 他：3,4番） ---
     function getMissionText(mIndex) {
-        const seed = parseInt(groupId) || 0;
+        const seed = (groupId === "未設定") ? 0 : parseInt(groupId);
+        const targetPool = (mIndex <= 2) ? CORE_T_POOL : CORE_OTHER_POOL;
         const myPassedIds = JSON.parse(localStorage.getItem(`passed_g${groupId}_m${mIndex}`) || "[]");
-        let allPassedIds = [];
-        for(let i=1; i<=4; i++) { allPassedIds = allPassedIds.concat(JSON.parse(localStorage.getItem(`passed_g${groupId}_m${i}`) || "[]")); }
-        let available = MISSION_POOL.filter((_, i) => !allPassedIds.includes(i));
-        let idx = (seed * 7 + mIndex * 13 + myPassedIds.length * 31) % available.length;
-        return { text: available[idx], rawIndex: MISSION_POOL.indexOf(available[idx]) };
+        let idx = (seed * 7 + mIndex * 13 + myPassedIds.length * 31) % targetPool.length;
+        return { text: targetPool[idx], rawIndex: idx };
     }
+
     function getTotalPassCount() {
         let count = 0;
         for(let i=1; i<=4; i++) count += JSON.parse(localStorage.getItem(`passed_g${groupId}_m${i}`) || "[]").length;
         return count;
     }
+
     function openMission(num) {
         if (JSON.parse(localStorage.getItem(`logs_g${groupId}`) || "[]").find(h => h.num == num)) return;
         currentOpenMissionIndex = num;
-        const mission = getMissionText(num); const totalPassed = getTotalPassCount();
-        document.getElementById("modalMissionTitle").innerText = `ミッション ${num}`;
+        const mission = getMissionText(num); 
+        const totalPassed = getTotalPassCount();
+        document.getElementById("modalMissionTitle").innerText = `コアミッション ${num}`;
         document.getElementById("modalMissionText").innerText = mission.text;
         document.getElementById("passCount").innerText = 4 - totalPassed;
         document.getElementById("passBtn").disabled = totalPassed >= 4;
         document.getElementById("modalOverlay").style.display = "flex";
     }
+
     function closeMission() { document.getElementById("modalOverlay").style.display = "none"; }
+
     function passMission() {
         if (getTotalPassCount() < 4) {
             let pIds = JSON.parse(localStorage.getItem(`passed_g${groupId}_m${currentOpenMissionIndex}`) || "[]");
@@ -216,58 +198,51 @@
         }
     }
 
-    // --- 4. タイマー ---
-    const storageKey = `startTime_g${groupId}`;
-    if (!localStorage.getItem(storageKey)) localStorage.setItem(storageKey, new Date().getTime());
-    const START_TIME = parseInt(localStorage.getItem(storageKey));
-
-    function updateTimers() {
-        if (timerPaused) return;
-        const now = new Date();
-        const elapsedMs = now.getTime() - START_TIME;
-        const eH = Math.floor(elapsedMs / 3600000).toString().padStart(2, '0');
-        const eM = Math.floor((elapsedMs % 3600000) / 60000).toString().padStart(2, '0');
-        const eS = Math.floor((elapsedMs % 60000) / 1000).toString().padStart(2, '0');
-        document.getElementById("elapsed").innerText = `${eH}:${eM}:${eS}`;
-        const diff = GOAL_TIME - now;
-        if (diff <= 0) { document.getElementById("remaining").innerText = "00:00:00"; return; }
-        const rH = Math.floor(diff / 3600000).toString().padStart(2, '0');
-        const rM = Math.floor((diff % 3600000) / 60000).toString().padStart(2, '0');
-        const rS = Math.floor((diff % 60000) / 1000).toString().padStart(2, '0');
-        document.getElementById("remaining").innerText = `${rH}:${rM}:${rS}`;
-    }
-    setInterval(updateTimers, 1000);
-
-    // --- 5. UI更新 ---
     function refreshUI() {
-        const history = JSON.parse(localStorage.getItem(`logs_g${groupId}`) || "[]");
-        const clearedMissions = history.map(log => log.num);
-        
-        history.forEach(log => {
-            const p = document.getElementById(`p${log.num}`); 
-            const t = document.getElementById(`t${log.num}`);
-            if(p) {
-                p.classList.add('cleared');
-                if (log.photo) p.style.backgroundImage = `url(data:image/jpeg;base64,${log.photo})`;
-            }
+        const coreLogs = JSON.parse(localStorage.getItem(`logs_g${groupId}`) || "[]");
+        const subLogs = JSON.parse(localStorage.getItem(`sub_logs_g${groupId}`) || "[]");
+
+        coreLogs.forEach(log => {
+            const p = document.getElementById(`p${log.num}`); const t = document.getElementById(`t${log.num}`);
+            if(p) { p.classList.add('cleared'); p.onclick = null; }
             if(t) t.innerText = log.time;
         });
-        
-        const select = document.getElementById("missionNum");
-        for (let i = select.options.length - 1; i >= 0; i--) { if (clearedMissions.includes(select.options[i].value)) select.remove(i); }
 
-        if (history.length >= 4) {
+        const matrix = document.getElementById("subMatrix"); matrix.innerHTML = "";
+        let currentPts = 0;
+        SUB_POOL.forEach(s => {
+            const isDone = subLogs.includes(s.id);
+            if(isDone) currentPts += s.pt;
+            matrix.innerHTML += `<div class="sub-chip ${isDone?'cleared':''}">${s.id}</div>`;
+        });
+        document.getElementById("totalPoints").innerText = currentPts;
+
+        const ptStatus = document.getElementById("ptStatus");
+        if(coreLogs.length >= 4) {
+            ptStatus.innerText = "確定ポイント"; ptStatus.className = "point-status status-confirmed";
+        } else {
+            ptStatus.innerText = "獲得見込み"; ptStatus.className = "point-status status-locked";
+        }
+
+        const optCore = document.getElementById("optCore"); optCore.innerHTML = "";
+        for(let i=1; i<=4; i++) {
+            if(!coreLogs.find(l => l.num == i)) optCore.innerHTML += `<option value="M${i}">コア：ミッション ${i}</option>`;
+        }
+        const optSub = document.getElementById("optSub"); optSub.innerHTML = "";
+        SUB_POOL.forEach(s => {
+            if(!subLogs.includes(s.id)) optSub.innerHTML += `<option value="${s.id}">サブ：${s.id} ${s.t}</option>`;
+        });
+
+        if (coreLogs.length >= 4) {
             timerPaused = true;
-            const finalElapsed = history[history.length-1].elapsedAt;
-            document.getElementById("elapsed").innerText = finalElapsed;
-            const totalPass = getTotalPassCount();
+            const finalElapsed = coreLogs[coreLogs.length-1].elapsedAt;
             document.getElementById("inputCard").className = "card congrats-card";
             document.getElementById("inputCard").innerHTML = `
                 <div class="congrats-text">🎉 MISSION COMPLETE!!</div>
                 <div class="result-box">
                     <div style="font-size: 0.8rem; color: #ffcc00;">TOTAL CLEAR TIME</div>
                     <div style="font-size: 2.2rem; font-weight: bold; color: #fff;">${finalElapsed}</div>
-                    <div style="font-size: 0.8rem; color: #aaa; margin-top: 10px;">使用したパス： <span style="color:#fff; font-size:1.1rem;">${totalPass}</span> / 4回</div>
+                    <div style="font-size: 0.8rem; color: #aaa; margin-top: 10px;">最終確定ポイント： <span style="color:#00ffcc; font-size:1.5rem;">${currentPts}</span> pt</div>
                 </div>
                 <button id="goalBtn" onclick="sendGoalNotification()">🚩 今から本部に行く</button>
                 <div class="navi-text">🚩 長浜バイオ大学サテライトオフィスへ向かい、この画面を提示してください！</div>
@@ -275,132 +250,68 @@
         }
     }
 
+    async function sendData() {
+        if (groupId === "未設定") return alert("グループ番号が不明です。QRコードからアクセスし直してください。");
+        const btn = document.getElementById("sendBtn");
+        const val = document.getElementById("missionTarget").value;
+        const fileInput = document.getElementById("photoInput");
+        if (!fileInput.files[0]) return alert("画像を選んでください。");
+
+        btn.disabled = true; btn.innerText = "送信中...";
+        const reader = new FileReader();
+        reader.readAsDataURL(fileInput.files[0]);
+        reader.onload = async () => {
+            const base64 = reader.result.split(',')[1];
+            const now = new Date();
+            const timeStr = now.getFullYear() + ("0"+(now.getMonth()+1)).slice(-2) + ("0"+now.getDate()).slice(-2) + "_" + ("0"+now.getHours()).slice(-2) + ("0"+now.getMinutes()).slice(-2);
+            const fileName = `G${groupId}_${val}_${timeStr}`;
+            const currentElapsed = document.getElementById("elapsed").innerText;
+            const detail = val.startsWith('M') ? getMissionText(val.slice(1)).text : SUB_POOL.find(s=>s.id===val).t;
+
+            try {
+                const res = await fetch(POST_URL, {
+                    method: "POST", headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ groupId, missionNum: val, imageData: base64, fileName: fileName, missionDetail: detail, elapsedTime: currentElapsed })
+                });
+
+                if (res.ok) {
+                    if(val.startsWith('M')) {
+                        let h = JSON.parse(localStorage.getItem(`logs_g${groupId}`) || "[]");
+                        h.push({ num: val.slice(1), time: now.toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'}), elapsedAt: currentElapsed });
+                        localStorage.setItem(`logs_g${groupId}`, JSON.stringify(h));
+                    } else {
+                        let s = JSON.parse(localStorage.getItem(`sub_logs_g${groupId}`) || "[]");
+                        s.push(val); localStorage.setItem(`sub_logs_g${groupId}`, JSON.stringify(s));
+                    }
+                    fileInput.value = ""; refreshUI();
+                } else { alert("送信エラー。電波の良い場所で再送してください。"); }
+            } catch (e) { alert("送信失敗。"); }
+            btn.disabled = false; btn.innerText = "ミッション完了報告を送信";
+        };
+    }
+
     async function sendGoalNotification() {
         const btn = document.getElementById("goalBtn");
         btn.disabled = true; btn.innerText = "通知送信中...";
         try {
-            const res = await fetch(POST_URL, {
-                method: "POST", headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ groupId, missionNum: "GOAL", elapsedTime: document.getElementById("elapsed").innerText, status: "completed" })
-            });
-            if (res.ok) { btn.innerText = "✅ 本部へ通知しました！"; btn.style.background = "#2ecc71"; }
-        } catch (e) { alert("通知エラー。そのまま本部へお越しください！"); btn.disabled = false; btn.innerText = "今から本部に行く（再試行）"; }
+            await fetch(POST_URL, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ groupId, missionNum: "GOAL", status: "completed" }) });
+            btn.innerText = "✅ 本部へ通知しました！"; btn.style.background = "#2ecc71";
+        } catch (e) { alert("通知失敗。そのまま本部へお越しください。"); }
     }
 
-    // --- 6. 送信ロジック（リサイズ機能付き） ---
-    async function sendData() {
-        const btn = document.getElementById("sendBtn");
-        const mNum = document.getElementById("missionNum").value;
-        const fileInput = document.getElementById("photoInput");
+    // --- タイマー管理 ---
+    const storageKey = `startTime_g${groupId}`;
+    if (!localStorage.getItem(storageKey)) localStorage.setItem(storageKey, new Date().getTime());
+    const START_TIME = parseInt(localStorage.getItem(storageKey));
+    setInterval(() => {
+        if (timerPaused) return;
+        const now = new Date();
+        const elapsedMs = now.getTime() - START_TIME;
+        document.getElementById("elapsed").innerText = new Date(elapsedMs).toISOString().substr(11, 8);
+        const diff = GOAL_TIME - now;
+        document.getElementById("remaining").innerText = diff > 0 ? new Date(diff).toISOString().substr(11, 8) : "00:00:00";
+    }, 1000);
 
-        if (groupId === "未設定" || !groupId) return alert("URLの最後に ?g=1 のようにグループIDを指定してください。");
-        if (!window.pendingPhoto && fileInput.files.length === 0) return alert("画像を選んでください。");
-
-        // 新規投稿の場合：リサイズ処理
-        if (!window.pendingPhoto) {
-            btn.disabled = true;
-            btn.innerText = "画像を最適化中...";
-            
-            const file = fileInput.files[0];
-            const reader = new FileReader();
-            reader.readAsDataURL(file);
-            reader.onload = (e) => {
-                const img = new Image();
-                img.onload = () => {
-                    // キャンバスでリサイズ
-                    const canvas = document.createElement('canvas');
-                    const MAX_WIDTH = 1080; // 長辺を1080pxに制限（通信量削減）
-                    let width = img.width;
-                    let height = img.height;
-
-                    if (width > height) {
-                        if (width > MAX_WIDTH) {
-                            height *= MAX_WIDTH / width;
-                            width = MAX_WIDTH;
-                        }
-                    } else {
-                        if (height > MAX_WIDTH) {
-                            width *= MAX_WIDTH / height;
-                            height = MAX_WIDTH;
-                        }
-                    }
-
-                    canvas.width = width;
-                    canvas.height = height;
-                    const ctx = canvas.getContext('2d');
-                    ctx.drawImage(img, 0, 0, width, height);
-                    
-                    // Base64化（JPEG形式、画質90%で軽量化）
-                    window.pendingPhoto = canvas.toDataURL('image/jpeg', 0.9).split(',')[1];
-                    executeUpload();
-                };
-                img.src = e.target.result;
-            };
-        } else {
-            // 再送の場合
-            executeUpload();
-        }
-
-        async function executeUpload() {
-            btn.disabled = true;
-            btn.innerText = "送信中... (電波を確認！)";
-            const currentElapsed = document.getElementById("elapsed").innerText;
-            
-            // ミッションテキストの取得
-            let missionText = "不明なミッション";
-            try {
-                missionText = getMissionText(mNum).text;
-            } catch(e) { console.error(e); }
-
-            try {
-                const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 30000); // 30秒でタイムアウト
-
-                const res = await fetch(POST_URL, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ 
-                        groupId: groupId, 
-                        missionNum: mNum, 
-                        imageData: window.pendingPhoto, 
-                        elapsedTime: currentElapsed, 
-                        missionDetail: missionText 
-                    }),
-                    signal: controller.signal
-                });
-                clearTimeout(timeoutId);
-
-                if (res.ok || res.status === 202) {
-                    const history = JSON.parse(localStorage.getItem(`logs_g${groupId}`) || "[]");
-                    history.push({ 
-                        num: mNum, 
-                        time: new Date().toLocaleTimeString('ja-JP', {hour:'2-digit', minute:'2-digit'}), 
-                        elapsedAt: currentElapsed,
-                        photo: window.pendingPhoto
-                    });
-                    localStorage.setItem(`logs_g${groupId}`, JSON.stringify(history));
-                    
-                    // 成功時のクリーンアップ
-                    window.pendingPhoto = null; 
-                    fileInput.value = ""; 
-                    btn.disabled = false;
-                    btn.innerText = "ミッション完了報告を送信";
-                    btn.style.background = "#00ffcc";
-
-                    if (history.length >= 4) { playFanfareSound(); } else { playStampSound(); }
-                    refreshUI();
-                } else {
-                    throw new Error("Server Error");
-                }
-            } catch (e) {
-                console.error(e);
-                alert("送信に失敗しました。建物を出るなど、電波の良い場所に移動して『再送する』を押してください。");
-                btn.innerText = "❌ 送信失敗：再送する";
-                btn.style.background = "#ff3366";
-                btn.disabled = false; 
-            }
-        }
-    }
     window.onload = refreshUI;
 </script>
 </body>
