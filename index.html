@@ -45,7 +45,7 @@
         .panel.cleared .stamp { display: block; animation: stampAnim 0.4s cubic-bezier(.17,.67,.83,.67); }
         .clear-time { font-size: 0.65rem; color: #ff3366; margin-top: 4px; font-weight: bold; }
 
-        @keyframes stampAnim { 0% { transform: scale(4) opacity: 0; } 100% { transform: scale(1) opacity: 1; } }
+        @keyframes stampAnim { 0% { transform: scale(4); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
 
         #modalOverlay { 
             display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
@@ -124,6 +124,22 @@
 </div>
 
 <script>
+    // --- 音声再生エンジン ---
+    function playChime() {
+        try {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            [523.25, 659.25, 783.99].forEach((f, i) => {
+                const osc = ctx.createOscillator(); const g = ctx.createGain();
+                osc.frequency.value = f; osc.type = "triangle";
+                g.gain.setValueAtTime(0, ctx.currentTime + i * 0.1);
+                g.gain.linearRampToValueAtTime(0.06, ctx.currentTime + i * 0.1 + 0.05);
+                g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.1 + 0.5);
+                osc.connect(g); g.connect(ctx.destination);
+                osc.start(ctx.currentTime + i * 0.1); osc.stop(ctx.currentTime + i * 0.1 + 0.5);
+            });
+        } catch (e) { console.error("Audio error:", e); }
+    }
+
     // --- データ定義 ---
     const CORE_T_POOL = [
         "[T]地面に映る「自分たちの影」だけを使い、影だけで「星型」や「円」を作ってパシャ！",
@@ -275,6 +291,9 @@
                 });
 
                 if (res.ok) {
+                    // --- 音を鳴らす ---
+                    playChime();
+
                     if(val.startsWith('M')) {
                         let h = JSON.parse(localStorage.getItem(`logs_g${groupId}`) || "[]");
                         h.push({ num: val.slice(1), time: now.toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'}), elapsedAt: currentElapsed });
